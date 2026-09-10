@@ -13,6 +13,10 @@ _This material is based upon work supported by the National Science Foundation u
 
 ---
 
+> **This is a fork.** This repository is maintained by Kennesaw State University's Office of Research (KSU OoR) and is forked from [jaedkim23/granted](https://github.com/jaedkim23/granted), created by Jae Kim and collaborators at the University of San Diego, Elon University, and Pepperdine University under NSF Grant No. 2528426. All credit for the original HERD localization design goes to the upstream authors — this fork adds a [Vercel deployment path](#method-3---deploy-on-vercel-this-fork) (see below) for KSU OoR's own use.
+
+---
+
 ## 📖 Overview
 
 This is a repository for the GRANTED project specifically for working with the NSF HERD data. The figure below shows the main steps of the project. The main scripts create the backend database structure and maps the relevant fields to the correct tables in the database. Any application can connect to the database. There is an example Tableau application provided in the repo. 
@@ -79,3 +83,40 @@ Refer to Steps 1, 2, and 3 prescribed in Method 1.
 * **Step 4: Create Web Resources**
 
 Please refer to the instructions provided in the [README](<turnkey/README.md>) in the **turnkey** directory. The instructions provide guidance on how to use the webpage templates for your own use. 
+
+## Method 3 - Deploy on Vercel (this fork)
+
+This fork adds a container-based deployment path for the `turnkey` PHP app so it can run on [Vercel](https://vercel.com) (Vercel has no native PHP runtime, so this uses [FrankenPHP](https://frankenphp.dev/) via Vercel's [container runtime](https://vercel.com/kb/guide/deploy-php-on-vercel-with-docker)). Relevant files:
+
+* `Dockerfile.vercel` — builds `turnkey/includes` (via Composer) and `turnkey/html/nsfproject` into a FrankenPHP image.
+* `Caddyfile` — serves the app from `/app/public/nsfproject`.
+* `vercel.json` — tells Vercel to build and route to the container.
+* `docker/generate-config.php` / `docker/entrypoint.sh` — regenerate the app's `conf.ini`/`settings.php` from environment variables on every container boot. The turnkey app normally writes these via its interactive setup wizard, but Vercel's container filesystem doesn't persist across deploys or cold starts, so configuration is env-var driven instead.
+
+### Required environment variables
+
+| Variable | Description |
+|---|---|
+| `DB_HOST` | Database host. Use a managed MySQL/MariaDB or Postgres instance (e.g. a Vercel Postgres/Neon/PlanetScale integration) — Vercel's container filesystem can't host the database itself. |
+| `DB_PORT` | Database port (e.g. `3306` for MySQL/MariaDB, `5432` for Postgres). |
+| `DB_NAME` | Database name. |
+| `DB_USER` | Database user. |
+| `DB_PASSWORD` | Database password. |
+
+### Optional environment variables
+
+| Variable | Description |
+|---|---|
+| `APP_SITE_TITLE`, `APP_SCHOOL_NAME`, `APP_LOGO_URL` | Header branding. |
+| `APP_EMAIL_SENDER`, `APP_COPYRIGHT` | Footer settings. |
+| `APP_RESOURCE_LINKS` | Comma-separated Markdown links, e.g. `[KSU OoR](https://oor.kennesaw.edu/)`. |
+| `APP_CSS_OVERRIDE` | Web path to a custom CSS override file. |
+| `REDIS_URL` | If set, PHP sessions are stored in Redis instead of the container's local (ephemeral) disk. Recommended once this sees real traffic, since Vercel Functions can scale across multiple instances. |
+
+### Deploying
+
+1. Create the database (see `create_herd_tbl_maria.sql` or `turnkey/includes/nsfproject/conf/tables_postgres.sql`) and set the environment variables above in the Vercel project settings.
+2. `vercel deploy --prod` (or connect the GitHub repo in the Vercel dashboard for git-based deploys).
+3. Log in with the seeded admin account from `turnkey/README.md`, then immediately create a new admin user and remove/rotate the default one.
+
+This path hasn't been exercised against a live Vercel + database deployment yet — validate it end-to-end before relying on it for anything production-facing.
