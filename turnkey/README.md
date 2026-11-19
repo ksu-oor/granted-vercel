@@ -4,7 +4,7 @@ NSF Project standalone website to display research information
 ## Database files
 Database files are seeded with 2 example pages,  the HERD dashboard, publicly available, and the R&D research page which is currently set to secure, meaning you must be logged in to see it. You can change the secure setting to false to make it public.  
 
-The database files are also seeded with a single admin user that should be removed once you have created your own admin user, see [Admin Login](#admin-login) for credentials.
+No user accounts are seeded. The first admin account is created during setup, see [Admin Login](#admin-login).
 
 ## Setup
 1. Download a copy of the repository.
@@ -16,9 +16,9 @@ The database files are also seeded with a single admin user that should be remov
 ```php composer.phar install  --optimize-autoloader --no-dev``` from the command line to install the necessary dependencies into includes/nsfproject/vendor, and to build your autoloader.  All of which is needed for the project to function. This step does not need to be done on the server, but it is recommended to do so, as it will save time and bandwidth on the server.  If you do not have access to the command line on your server, you can run this command on your local machine, and then upload the includes/nsfproject/vendor directory to your server.
 4. Place the nsfproject folder in the webpath of your server.  Please note, the nsfproject folder is needed.
    1. If you place the nsfproject folder below the toplevel of the webpath (directly in the HTML directory), you will need to update the .htaccess file to include the webpath (from the html folder to the nsfproject folder) to the nsfproject folder in the RewriteBase directive.  For example, if you place the nsfproject folder in a subdirectory called "nsf", you would change the RewriteBase directive to "RewriteBase /nsf/nsfproject/".  If you place the nsfproject folder directly in the HTML directory, you can leave the RewriteBase directive as is.
-5. point your browser to your server and webpath, and you should see page one of the setup process.  Follow the instructions to complete the setup.  You will need to provide the database credentials you created in step 2, and the location of the Includes directory from step 3.
-6. You will be given the opportunity to remove the setup files after the setup is complete, it is recommended to do so for security reasons.  
-7. Once the setup is complete, you can log in to the admin dashboard using the credentials provided in the database files, see [Admin Login](#admin-login) for credentials.  From there you can create new pages, edit existing pages, and manage users.
+5. point your browser to your server and webpath, and you should see page one of the setup process.  Follow the instructions to complete the setup.  You will need to provide the database credentials you created in step 2, the location of the Includes directory from step 3, and an email and password (at least 12 characters) for the first admin account.
+6. You will be given the opportunity to remove the setup files after the setup is complete, it is recommended to do so for security reasons. Once setup has written `assets/nsfproject/settings/settings.php`, the setup pages refuse to run again.  
+7. Once the setup is complete, log in to the admin dashboard with the admin account you created during setup, see [Admin Login](#admin-login).  From there you can create new pages, edit existing pages, and manage users.
 
 ## Users
 This project supports regular users and admin users.  Regular users can view pages that are set to secure.  Admin users can view all pages, and can also create, edit, and delete pages, as well as manage users.  It is recommended to create a new admin user and delete the default admin user for security reasons.
@@ -34,5 +34,6 @@ Located in the css directory is a file called overrides.css.  This file is loade
 ## Admin login:
 <span id='admin-login'></span>
 
-* email: admin@admin.com
-* password: hvG+$D@set
+There is no default admin account. The first admin is created from the email and password you enter during setup (or, for the container/Vercel deployment, from the `ADMIN_EMAIL` / `ADMIN_PASSWORD` environment variables; see the top-level README). Additional users are added from the admin dashboard and set their own password through the emailed link.
+
+Earlier versions of this project seeded an `admin@admin.com` account whose password was published here. If your database still contains that account, logins to it are now refused: create a new admin, then delete it.

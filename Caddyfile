@@ -1,5 +1,11 @@
 :{$PORT:80} {
 	root * /app/public/nsfproject
 	encode zstd gzip
+
+	# Defense in depth: the setup wizard is removed from the image, but never
+	# serve it even if it reappears.
+	@setup path_regexp setup ^/setup[0-9]*\.php$
+	respond @setup 404
+
 	php_server
 }

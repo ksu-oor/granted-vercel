@@ -47,7 +47,7 @@ array ( 'header' =>
                     'port' => 3306,
                     'dbname' => 'nsfproject',
                     'user' => 'nsfproject',
-                    'password' => '6o6lglnkpF$0', ),
+                    'password' => '********', ),
         'CSS' => array ( 'override' => '', ), )
 */
     public function __construct($array,$includesdir) {
@@ -145,6 +145,26 @@ array ( 'header' =>
             $this->form .= "<p>This should be the webpath to where you have placed your CSS override file.  For example, if you have placed your CSS override file in the css directory of this project, you would enter '/nsfproject/assets/nsfproject/css/yourfilename.css'.</p>\r\n";
         }
         $this->form .="</fieldset>\r\n";
+        $this->form .= $this->buildAdminFieldset();
+    }
+
+    /**
+     * First administrator account. There is no seeded default admin, so setup
+     * creates one from these fields. The password is never echoed back.
+     */
+    private function buildAdminFieldset() {
+        $minLength = helper::MIN_ADMIN_PASSWORD_LENGTH;
+        $email = htmlspecialchars((string)($_POST['adminEmail'] ?? ''), ENT_QUOTES);
+        $first = htmlspecialchars((string)($_POST['adminFirst'] ?? ''), ENT_QUOTES);
+        $last = htmlspecialchars((string)($_POST['adminLast'] ?? ''), ENT_QUOTES);
+        $return = '<fieldset><legend>Administrator Account</legend>' . "\r\n";
+        $return .= "<div class='labelInput'><label for='adminEmail'>Admin Email</label>\r\n<input type='email' id='adminEmail' name='adminEmail' value='{$email}' required/>\r\n</div>";
+        $return .= "<div class='labelInput'><label for='adminFirst'>Admin First Name</label>\r\n<input type='text' id='adminFirst' name='adminFirst' value='{$first}' required/>\r\n</div>";
+        $return .= "<div class='labelInput'><label for='adminLast'>Admin Last Name</label>\r\n<input type='text' id='adminLast' name='adminLast' value='{$last}' required/>\r\n</div>";
+        $return .= "<div class='labelInput'><label for='adminPassword'>Admin Password</label>\r\n<input type='password' id='adminPassword' name='adminPassword' minlength='{$minLength}' autocomplete='new-password' required/>\r\n</div>";
+        $return .= "<p>At least {$minLength} characters. You will use this account to log in once setup is complete.</p>\r\n";
+        $return .= "</fieldset>\r\n";
+        return $return;
     }
 
     public function display($url) {

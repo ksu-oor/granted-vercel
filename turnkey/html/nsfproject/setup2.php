@@ -12,12 +12,18 @@
  * @license  https://github.sandiego.edu.com/ GPL
  * @link     https://github.sandiego.edu.com/
  **/
+// Refuse to run once the site is configured: re-running setup would let an
+// unauthenticated visitor repoint the app at a database they control.
+if (file_exists(__DIR__ . '/assets/nsfproject/settings/settings.php')) {
+    header('Location: setup4.php');
+    exit;
+}
 
 
 include 'assets/nsfproject/header/setup-header.php';
 
-$includesdir=$_POST["includesdir"]??null;
-rtrim ($includesdir,"/");
+$includesdir=rtrim((string)($_POST["includesdir"]??''),"/");
+$includesdirSafe=htmlspecialchars($includesdir, ENT_QUOTES);
 $autoloaddir=$includesdir . DIRECTORY_SEPARATOR . 'includes'.DIRECTORY_SEPARATOR.'nsfproject' . DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR . 'autoload.php';
 
 if (is_dir($includesdir . DIRECTORY_SEPARATOR . 'includes'.DIRECTORY_SEPARATOR.'nsfproject')) {
@@ -25,9 +31,9 @@ if (is_dir($includesdir . DIRECTORY_SEPARATOR . 'includes'.DIRECTORY_SEPARATOR.'
 } else {
     ?>
     <form action="setup2.php" method="post">
-<label for="includesdir">We checked your <?php echo $includesdir?>, but could not load the autoloader.  Please check the absolute path you provided, and try again.<br> Reminder: It is where you placed the includes directory.</label>
+<label for="includesdir">We checked your <?php echo $includesdirSafe?>, but could not load the autoloader.  Please check the absolute path you provided, and try again.<br> Reminder: It is where you placed the includes directory.</label>
     <div class="flex-container">
-<input type="text" name="includesdir" id="includesdir" placeholder="Absolute path of includes directory" class="flex-input" value="<?php echo $includesdir?>" required>
+<input type="text" name="includesdir" id="includesdir" placeholder="Absolute path of includes directory" class="flex-input" value="<?php echo $includesdirSafe?>" required>
     </div>
     <div>
     <input type="submit" value="Next" class="button">

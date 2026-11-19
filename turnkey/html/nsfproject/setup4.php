@@ -30,7 +30,7 @@ if (!empty($_POST)) {
         }
 
     }
-    header("Location: manage/user/add");
+    header("Location: login.php");
     exit;
 } else {
     include 'assets/nsfproject/header/setup-header.php';

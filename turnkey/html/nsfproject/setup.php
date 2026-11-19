@@ -1,5 +1,7 @@
 <?php
-if (file_exists('assets/nsfproject/settings/settings.php')) {
+// Refuse to run once the site is configured: re-running setup would let an
+// unauthenticated visitor repoint the app at a database they control.
+if (file_exists(__DIR__ . '/assets/nsfproject/settings/settings.php')) {
     header('Location: setup4.php');
     exit;
 }
