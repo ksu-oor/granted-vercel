@@ -15,9 +15,13 @@
 ?>
 <p>Note: Changes to the configuration won’t be visible until you navigate to a page following the confirmation page.</p>
 <form method="post">
+<?php echo \Nsfproject\helper\csrf::field(); ?>
 <?php
     foreach($ini as $key => $value)
 {
+    if ($key === 'security') {
+        continue; // secrets are not editable here; updateSettingsFromForm() preserves them
+    }
     ?>
     <fieldset>
         <legend><?php echo htmlspecialchars($key)?></legend>
@@ -62,7 +66,12 @@
                 ?>
                 <div class="field-group">
                     <label for="<?php echo htmlspecialchars($key . '-' . $k); ?>"><?php echo htmlspecialchars($k); ?>:</label>
-                    <input type="text" id="<?php echo htmlspecialchars($key . '-' . $k); ?>" name="<?php echo htmlspecialchars($key); ?>[<?php echo htmlspecialchars($k); ?>]" value="<?php echo htmlspecialchars($v); ?>" />
+                    <?php if ($key === 'database' && $k === 'password'): ?>
+                    <?php /* Never echo the DB password into the page; blank keeps the current one. */ ?>
+                    <input type="password" id="database-password" name="database[password]" value="" autocomplete="new-password" placeholder="Leave blank to keep the current password" />
+                    <?php else: ?>
+                    <input type="text" id="<?php echo htmlspecialchars($key . '-' . $k); ?>" name="<?php echo htmlspecialchars($key); ?>[<?php echo htmlspecialchars($k); ?>]" value="<?php echo htmlspecialchars((string)$v); ?>" />
+                    <?php endif; ?>
                 </div>
                 <?php
             }

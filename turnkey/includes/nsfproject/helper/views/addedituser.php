@@ -14,6 +14,7 @@
  **/
 ?>
 <form method="post">
+    <?php echo \Nsfproject\helper\csrf::field(); ?>
     <?php
     $logger->displayUserMessage();
     ?>

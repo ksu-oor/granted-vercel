@@ -1,0 +1,23 @@
+# Apache rewrite rules for the app's pretty URLs (see turnkey/README.md).
+# The container/Vercel deployment uses the equivalent rules in /Caddyfile.
+#
+# If nsfproject is not directly under your web root, change RewriteBase to
+# the web path of this folder, e.g. "RewriteBase /nsf/nsfproject/".
+
+Options -Indexes
+
+RewriteEngine On
+RewriteBase /nsfproject/
+
+# /manage/{action}[/{ref}[/{id}]]
+RewriteRule ^manage/([A-Za-z]+)/([A-Za-z]+)/([0-9]+)/?$ manage/index.php?action=$1&ref=$2&id=$3 [QSA,L]
+RewriteRule ^manage/([A-Za-z]+)/([A-Za-z]+)/?$ manage/index.php?action=$1&ref=$2 [QSA,L]
+RewriteRule ^manage/([A-Za-z]+)/?$ manage/index.php?action=$1 [QSA,L]
+
+# /pages/{id}
+RewriteRule ^pages/([0-9]+)/?$ index.php?_focus=$1 [QSA,L]
+
+# Don't serve stray config, SQL, backup, log or docs files from the web root.
+<FilesMatch "\.(ini|sql|old|bak|log|md)$">
+    Require all denied
+</FilesMatch>

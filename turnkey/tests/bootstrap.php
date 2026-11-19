@@ -37,3 +37,5 @@ if (!defined('WEB_PATH')) {
 error_reporting(E_ALL);
 ini_set('display_errors', '1');
 
+// Password hashing fails closed without a pepper; give tests a fixed one.
+\Nsfproject\helper\helper::setPepper(str_repeat('test-pepper-', 4));

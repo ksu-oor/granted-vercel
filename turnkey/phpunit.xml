@@ -29,6 +29,9 @@
             <file>tests/NavigationTest.php</file>
             <file>tests/DbModelTest.php</file>
             <file>tests/DefaultCredentialsTest.php</file>
+            <file>tests/PepperTest.php</file>
+            <file>tests/CsrfTest.php</file>
+            <file>tests/HardeningTest.php</file>
         </testsuite>
     </testsuites>
     <coverage>

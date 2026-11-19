@@ -20,6 +20,19 @@ No user accounts are seeded. The first admin account is created during setup, se
 6. You will be given the opportunity to remove the setup files after the setup is complete, it is recommended to do so for security reasons. Once setup has written `assets/nsfproject/settings/settings.php`, the setup pages refuse to run again.  
 7. Once the setup is complete, log in to the admin dashboard with the admin account you created during setup, see [Admin Login](#admin-login).  From there you can create new pages, edit existing pages, and manage users.
 
+## Password pepper
+Passwords are hashed with bcrypt after an HMAC with a secret "pepper". The pepper is never stored in source code. Setup generates a random one and writes it to the `[security]` section of `includes/nsfproject/conf/conf.ini`; the `APP_PEPPER` environment variable overrides it. If no pepper of at least 32 characters is configured, logins and password changes are refused.
+
+**Upgrading an existing install:** earlier versions hardcoded the pepper in `helper.php`, and it is public in this repository's history. Add a new random pepper and keep the old one only for migration:
+
+```ini
+[security]
+pepper = "<output of: openssl rand -hex 32>"
+legacyPepper = "<the value previously in helper.php>"
+```
+
+Each user's hash is upgraded to the new pepper on their next login. Remove `legacyPepper` once everyone has logged in; anyone who hasn't will need to use "Forgot Password".
+
 ## Users
 This project supports regular users and admin users.  Regular users can view pages that are set to secure.  Admin users can view all pages, and can also create, edit, and delete pages, as well as manage users.  It is recommended to create a new admin user and delete the default admin user for security reasons.
 ### Passsword reset link / Password set email 

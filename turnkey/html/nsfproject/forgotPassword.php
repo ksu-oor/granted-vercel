@@ -32,8 +32,10 @@ if (isset($_GET['token'])) {
     $user = new user($dbh);
     $email = $user->checkToken($token);
     if ($email !== false) {
-        echo "$email is email <br>";
-        $_SESSION['token'] = $email;
+        // Keep the token itself (not just the email) so updatePassword.php can
+        // re-check it is still valid and then consume it.
+        $_SESSION['reset_token'] = $token;
+        $_SESSION['reset_email'] = $email;
         helper::updatePasswordform();
     } else {
         $logger = logger::getInstance();

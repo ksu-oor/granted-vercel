@@ -102,6 +102,7 @@ This fork adds a container-based deployment path for the `turnkey` PHP app so it
 | `DB_NAME` | Database name. |
 | `DB_USER` | Database user. |
 | `DB_PASSWORD` | Database password. |
+| `APP_PEPPER` | Secret key mixed into every password hash (at least 32 characters, e.g. `openssl rand -hex 32`). Store it like a password and keep it stable: changing it invalidates all passwords unless the old value is set as `APP_LEGACY_PEPPER`. The container refuses to start without it. |
 
 ### Optional environment variables
 
@@ -112,6 +113,7 @@ This fork adds a container-based deployment path for the `turnkey` PHP app so it
 | `APP_RESOURCE_LINKS` | Comma-separated Markdown links, e.g. `[KSU OoR](https://oor.kennesaw.edu/)`. |
 | `APP_CSS_OVERRIDE` | Web path to a custom CSS override file. |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Creates the first admin account on boot if the database has no admin yet (password: at least 12 characters). Optional `ADMIN_FIRST` / `ADMIN_LAST` set the name. It never overwrites an existing admin. You can remove these once you've logged in. |
+| `APP_LEGACY_PEPPER` | Previous pepper, used only to migrate existing password hashes. A user's hash is upgraded to `APP_PEPPER` the next time they log in. For a database created before this release, set it to the value that used to be hardcoded in `turnkey/includes/nsfproject/helper/helper.php` (see git history). Remove it once everyone has logged in. |
 | `REDIS_URL` | If set, PHP sessions are stored in Redis instead of the container's local (ephemeral) disk. Recommended once this sees real traffic, since Vercel Functions can scale across multiple instances. |
 
 ### Deploying
