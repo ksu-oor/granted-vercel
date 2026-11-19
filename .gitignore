@@ -1,0 +1,18 @@
+# Secrets and local configuration — never commit these.
+.env
+.env.*
+*.pem
+*.key
+turnkey/includes/nsfproject/conf/conf.ini
+turnkey/html/nsfproject/assets/nsfproject/settings/settings.php
+turnkey/tests/config.php
+
+# Dependencies / build output
+turnkey/includes/nsfproject/vendor/
+__pycache__/
+*.pyc
+.phpunit.cache/
+.phpunit.result.cache
+
+# Local agent scratch space
+.context/

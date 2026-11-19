@@ -46,12 +46,22 @@ $formInput = [
     'dbname' => envOrFail('DB_NAME'),
     'user' => envOrFail('DB_USER'),
     'password' => envOrFail('DB_PASSWORD'),
+    // Password pepper. Must stay stable across deploys: changing it without
+    // setting APP_LEGACY_PEPPER to the old value invalidates every password.
+    'pepper' => envOrFail('APP_PEPPER'),
+    'legacyPepper' => getenv('APP_LEGACY_PEPPER') ?: '',
     // Unused by this script (we hardcode container paths below), but
     // required by helper::prepareIniFile()'s expected input shape.
     'includesdir' => '/app',
 ];
 
+if (strlen($formInput['pepper']) < \Nsfproject\helper\helper::MIN_PEPPER_LENGTH) {
+    fwrite(STDERR, 'APP_PEPPER must be at least ' . \Nsfproject\helper\helper::MIN_PEPPER_LENGTH . " characters (e.g. `openssl rand -hex 32`).\n");
+    exit(1);
+}
+
 $ini = \Nsfproject\helper\helper::prepareIniFile($formInput);
+\Nsfproject\helper\helper::loadSecurityConfig($ini);
 
 $iniPath = '/app/includes/nsfproject/conf/conf.ini';
 $writer = new \Matomo\Ini\IniWriter();

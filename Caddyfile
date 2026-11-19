@@ -7,5 +7,23 @@
 	@setup path_regexp setup ^/setup[0-9]*\.php$
 	respond @setup 404
 
+	# Same deny list as the Apache .htaccess: never serve dotfiles or stray
+	# config/SQL/backup/log/docs files from the web root.
+	@hidden path_regexp hidden (/\.|\.(ini|sql|old|bak|log|md)$)
+	respond @hidden 404
+
+	# Pretty URLs used by the app's links (same rules as
+	# turnkey/html/nsfproject/.htaccess for Apache installs):
+	#   /manage/{action}[/{ref}[/{id}]] -> manage/index.php?action=..&ref=..&id=..
+	#   /pages/{id}                     -> index.php?_focus={id}
+	@manage3 path_regexp m3 ^/manage/([A-Za-z]+)/([A-Za-z]+)/([0-9]+)/?$
+	rewrite @manage3 /manage/index.php?action={re.m3.1}&ref={re.m3.2}&id={re.m3.3}&{query}
+	@manage2 path_regexp m2 ^/manage/([A-Za-z]+)/([A-Za-z]+)/?$
+	rewrite @manage2 /manage/index.php?action={re.m2.1}&ref={re.m2.2}&{query}
+	@manage1 path_regexp m1 ^/manage/([A-Za-z]+)/?$
+	rewrite @manage1 /manage/index.php?action={re.m1.1}&{query}
+	@page path_regexp page ^/pages/([0-9]+)/?$
+	rewrite @page /index.php?_focus={re.page.1}&{query}
+
 	php_server
 }

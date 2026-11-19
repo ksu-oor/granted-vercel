@@ -81,8 +81,10 @@ if ($dbconnection) {
         require_once $autoloaddir;
         // $iniwriter = \Matomo\Ini\IniWriter::class;
         $iniwriter = new \Matomo\Ini\IniWriter();
-        $ini = \Nsfproject\helper\helper::prepareIniFile($_POST);
+        // Never take the pepper from the request; prepareIniFile() generates one.
+        $ini = \Nsfproject\helper\helper::prepareIniFile(array_diff_key($_POST, ['pepper' => 1, 'legacyPepper' => 1]));
         $iniwriter->writeToFile($inifilelocation, $ini);
+        \Nsfproject\helper\helper::loadSecurityConfig($ini);
     } catch (Exception $e) {
         $error .= '<p class="error">Error writing conf.ini file: ' . $e->getMessage() . "</p>\n";
         $foundError = true;
@@ -109,6 +111,7 @@ if ($dbconnection) {
                 error_log('setup3 bootstrapAdmin: ' . $e->getMessage());
             }
         }
+        define('NSF_SKIP_CSRF_CHECK', true);
         include 'assets/nsfproject/start/init.php';
         include 'assets/nsfproject/start/noLoginNeeded.php';
         $logger=\Nsfproject\helper\logger::getInstance();

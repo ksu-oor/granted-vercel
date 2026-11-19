@@ -179,7 +179,23 @@ class user
             return false;
         }
         if ($user) {
-            if (helper::verifyPassword($password, $user['passwordhash'])) {
+            try {
+                $verified = helper::verifyPassword($password, $user['passwordhash'], $needsRehash);
+            } catch (\RuntimeException $e) {
+                // Pepper missing/misconfigured: fail closed, but say why.
+                $logger = logger::getInstance();
+                $logger->logErrorMessage($e->getMessage());
+                $logger->logUserMessage('Login is unavailable because the server is not fully configured. Please contact the site administrator.');
+                $logger->writeErrors();
+                return false;
+            }
+            if ($verified && $needsRehash) {
+                // Migrate hashes made with the legacy pepper (or an old bcrypt
+                // cost) to the current pepper now that we know the password.
+                $rehash = $this->dbh->getDB()->prepare("UPDATE users SET passwordhash=? WHERE id=?");
+                $rehash->execute([helper::hashPassword($password), $user['id']]);
+            }
+            if ($verified) {
                 $this->first=$user['first'];
                 $this->last=$user['last'];
                 $this->level=$user['level'];
@@ -204,6 +220,8 @@ class user
             $token = bin2hex(random_bytes(16));
             $expires = date('Y-m-d H:i:s', time() + 3600);
             try {
+                // Only the newest link is valid: drop any earlier tokens for this user.
+                $this->consumeResetTokens($email);
                 $sql = "INSERT INTO password_resets (email, token, expires) VALUES (?, ?, ?)";
                 $dbh = $this->dbh;
                 $stmt = $dbh->getDB()->prepare($sql);
@@ -252,7 +270,20 @@ class user
         return true;
     }
 
+    /**
+     * Invalidate every outstanding reset/set-password token for $email.
+     * Called after a successful reset so a link can't be replayed.
+     */
+    public function consumeResetTokens(string $email): void
+    {
+        $stmt = $this->dbh->getDB()->prepare("DELETE FROM password_resets WHERE email=?");
+        $stmt->execute([$email]);
+    }
+
     public function checkToken($token) {
+        if (!is_string($token) || $token === '') {
+            return false;
+        }
         $dbh = $this->dbh;
         $sql = "SELECT * FROM password_resets WHERE token=? and expires >= now()";
         $stmt = $dbh->getDB()->prepare($sql);
@@ -266,6 +297,10 @@ class user
     }
 
     public function setSession() {
+        // New session ID on login so a pre-planted session ID can't be reused.
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_regenerate_id(true);
+        }
         $_SESSION['email'] = $this->getEmail();
         //error_log($this->getEmail() . " " . $this->getFirst() . " " . $this->getLast() . "email, first and last");
         $_SESSION['first'] = $this->getFirst();

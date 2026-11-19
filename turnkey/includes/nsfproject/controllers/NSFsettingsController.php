@@ -183,7 +183,11 @@ class NSFsettingsController
             $newSettings['database']['port'] = trim($_POST['database']['port'] ?? '');
             $newSettings['database']['dbname'] = trim($_POST['database']['dbname'] ?? '');
             $newSettings['database']['user'] = trim($_POST['database']['user'] ?? '');
-            $newSettings['database']['password'] = trim($_POST['database']['password'] ?? '');
+            // The form never shows the current password; blank means "keep it".
+            $postedPassword = trim($_POST['database']['password'] ?? '');
+            if ($postedPassword !== '') {
+                $newSettings['database']['password'] = $postedPassword;
+            }
 
             // Update CSS section
             $newSettings['CSS']['override'] = trim($_POST['CSS']['override'] ?? '');

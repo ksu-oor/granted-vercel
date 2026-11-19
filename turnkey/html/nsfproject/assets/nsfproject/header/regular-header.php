@@ -35,13 +35,16 @@
 		<div class="site-header__account">
 			<?php
 			if (isset($_SESSION['first'])) {
-				echo "Welcome  {$_SESSION['first']} {$_SESSION['last']}";
-				echo "<a href='". WEB_PATH . "/logout.php'>Logout</a>";
+				echo 'Welcome  ' . htmlspecialchars((string)$_SESSION['first']) . ' ' . htmlspecialchars((string)$_SESSION['last']);
+				// Logout is a POST with a CSRF token so other sites can't log users out.
+				echo "<form method='post' action='" . WEB_PATH . "/logout.php' class='site-header__logout'>"
+					. \Nsfproject\helper\csrf::field()
+					. "<button type='submit' class='btn btn--ghost'>Logout</button></form>";
 				if(isset($_SESSION['return'])) {
 					unset($_SESSION['return']);
 				}
 			} else {
-				echo "<a class='btn btn--ghost' href='".WEB_PATH . "/login.php?return={$_SERVER['PHP_SELF']}'>Login</a>";
+				echo "<a class='btn btn--ghost' href='" . WEB_PATH . "/login.php?return=" . htmlspecialchars(rawurlencode($_SERVER['REQUEST_URI'] ?? '/'), ENT_QUOTES) . "'>Login</a>";
 			}
 			?>
 

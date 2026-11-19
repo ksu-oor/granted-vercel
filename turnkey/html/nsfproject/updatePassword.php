@@ -14,8 +14,9 @@
  **/
 include 'assets/nsfproject/start/init.php';
 include 'assets/nsfproject/start/noLoginNeeded.php';
-if (!isset($_SESSION['token'])) {
-    header(header: "location:". WEB_PATH . "/login");
+if (!isset($_SESSION['reset_token'], $_SESSION['reset_email'])) {
+    header(header: "location:". WEB_PATH . "/login.php");
+    exit;
 }
 use Matomo\Ini\IniReader;
 use Nsfproject\helper\helper;
@@ -38,19 +39,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Confirm password is required.';
         $logger->logUserMessage('Confirm password is required.');
     }
+    if ($password !== '' && strlen($password) < \Nsfproject\helper\helper::MIN_PASSWORD_LENGTH) {
+        $errors[] = 'Password too short.';
+        $logger->logUserMessage('Password must be at least ' . \Nsfproject\helper\helper::MIN_PASSWORD_LENGTH . ' characters.');
+    }
     if ($password !== $confirm_password) {
         $errors[] = 'Passwords do not match.';
         $logger->logUserMessage('Passwords do not match.');
     }
 
     if (empty($errors)) {
-        $success = true;
         $dbh = \Nsfproject\helper\dbModel::getInstance();
         $user=new \Nsfproject\models\user($dbh);
-        if ($user->updatePassword($_SESSION['token'], $password)) {
-            if ($user->validateUser($_SESSION['token'], $password)) {
+        $resetEmail = $_SESSION['reset_email'];
+        // The link must still be valid (unexpired, not already used) at the
+        // moment the password is changed, not just when the form was opened.
+        if ($user->checkToken($_SESSION['reset_token']) !== $resetEmail) {
+            unset($_SESSION['reset_token'], $_SESSION['reset_email']);
+            $logger->logUserMessage('This password link has expired or was already used. Please request a new one.');
+            $logger->displayUserMessage();
+            echo helper::getFooter($ini);
+            exit;
+        }
+        $success = true;
+        if ($user->updatePassword($resetEmail, $password)) {
+            $user->consumeResetTokens($resetEmail);
+            unset($_SESSION['reset_token'], $_SESSION['reset_email']);
+            if ($user->validateUser($resetEmail, $password)) {
                 $user->setSession();
-                unset($_SESSION['token']);
             }
 
             $logger->displaySuccessMessage();
@@ -63,7 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }, 10000);
             </script>
             <?php
-            helper::getFooter($ini);
+            echo helper::getFooter($ini);
             exit;
         }
     }else {
@@ -72,5 +88,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 } else {
     helper::updatePasswordform();
 }
-helper::getFooter($ini);
+echo helper::getFooter($ini);
 ?>

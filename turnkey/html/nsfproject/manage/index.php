@@ -77,8 +77,14 @@ if (empty($_GET) && empty($_POST)) {
                 }
             } elseif ($ref === 'delete') {
                 $user=new user($db);
-                $user->fetchUser($_GET['id'],how:'id');
-                $user->deleteUser();
+                // Only via POST (CSRF token checked in init.php); a GET link
+                // could be triggered cross-site by an <img> or a plain link.
+                if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'])) {
+                    $user->fetchUser((int)$_POST['id'],how:'id');
+                    $user->deleteUser();
+                } else {
+                    $logger->logUserMessage('Users can only be deleted with the Delete button on the user list.');
+                }
 
                 $logger = logger::getInstance();
                 $logger->displayUserMessage();

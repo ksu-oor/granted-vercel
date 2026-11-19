@@ -24,7 +24,15 @@ use PDO;
 class helper
 {
     var $error=array();
-    public static $pepper = "8#7*0B9#16Ee1BiD9P122)a5@!7j(2MV";
+    /**
+     * Password pepper (HMAC key applied before bcrypt). Never hardcoded: it
+     * comes from the APP_PEPPER env var or [security] pepper in conf.ini, via
+     * loadSecurityConfig(). Password operations fail closed if it is unset.
+     */
+    private static ?string $pepper = null;
+    /** Previous pepper, only used to migrate existing hashes on login. */
+    private static ?string $legacyPepper = null;
+    public const MIN_PEPPER_LENGTH = 32;
     public static $forgotPasswordLink = WEB_PATH . "/forgotPassword.php?token=";
 
     /**
@@ -35,19 +43,80 @@ class helper
      */
     public const LEAKED_DEFAULT_ADMIN_HASH = '$2y$10$eXE3WfNSXi5kpEikpJPdsuFa5tLVwK1L3w3oc3fjapvQ5yewUv1H.';
 
-    public const MIN_ADMIN_PASSWORD_LENGTH = 12;
+    public const MIN_PASSWORD_LENGTH = 12;
+    public const MIN_ADMIN_PASSWORD_LENGTH = self::MIN_PASSWORD_LENGTH;
+
+    /**
+     * Return $path if it is a same-site absolute path ("/manage/user"),
+     * otherwise the site root. Blocks open redirects such as
+     * "https://evil.example", "//evil.example" and "/\\evil.example".
+     */
+    public static function safeLocalPath(string $path): string
+    {
+        $fallback = (defined('WEB_PATH') ? WEB_PATH : '') . '/';
+        if ($path === '' || $path[0] !== '/' || preg_match('#^/[/\\\\]#', $path) || preg_match('/[\x00-\x1f\x7f]/', $path)) {
+            return $fallback;
+        }
+        return $path;
+    }
+
+    public static function setPepper(?string $pepper, ?string $legacyPepper = null): void
+    {
+        self::$pepper = ($pepper === null || $pepper === '') ? null : $pepper;
+        self::$legacyPepper = ($legacyPepper === null || $legacyPepper === '') ? null : $legacyPepper;
+    }
+
+    /**
+     * Load secrets from the environment (preferred) or the [security] section
+     * of conf.ini. Called whenever the ini file is applied.
+     */
+    public static function loadSecurityConfig(array $ini): void
+    {
+        $pepper = getenv('APP_PEPPER') ?: ($ini['security']['pepper'] ?? null);
+        $legacy = getenv('APP_LEGACY_PEPPER') ?: ($ini['security']['legacyPepper'] ?? null);
+        self::setPepper($pepper === null ? null : (string)$pepper, $legacy === null ? null : (string)$legacy);
+    }
+
+    public static function generatePepper(): string
+    {
+        return bin2hex(random_bytes(32));
+    }
+
+    private static function requirePepper(): string
+    {
+        if (self::$pepper === null || strlen(self::$pepper) < self::MIN_PEPPER_LENGTH) {
+            throw new \RuntimeException(
+                'Password pepper is not configured. Set the APP_PEPPER environment variable or [security] pepper in conf.ini (at least '
+                . self::MIN_PEPPER_LENGTH . ' characters).'
+            );
+        }
+        return self::$pepper;
+    }
 
     public static function hashPassword(string $password): string
     {
-        return password_hash(hash_hmac("sha256", $password, self::$pepper), PASSWORD_DEFAULT);
+        return password_hash(hash_hmac("sha256", $password, self::requirePepper()), PASSWORD_DEFAULT);
     }
 
-    public static function verifyPassword(string $password, ?string $hash): bool
+    /**
+     * @param bool|null $needsRehash set to true when the hash should be
+     *        replaced (made with the legacy pepper or outdated bcrypt cost).
+     */
+    public static function verifyPassword(string $password, ?string $hash, ?bool &$needsRehash = null): bool
     {
+        $needsRehash = false;
         if ($hash === null || $hash === '' || hash_equals(self::LEAKED_DEFAULT_ADMIN_HASH, $hash)) {
             return false;
         }
-        return password_verify(hash_hmac("sha256", $password, self::$pepper), $hash);
+        if (password_verify(hash_hmac("sha256", $password, self::requirePepper()), $hash)) {
+            $needsRehash = password_needs_rehash($hash, PASSWORD_DEFAULT);
+            return true;
+        }
+        if (self::$legacyPepper !== null && password_verify(hash_hmac("sha256", $password, self::$legacyPepper), $hash)) {
+            $needsRehash = true;
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -117,8 +186,14 @@ class helper
             ),
             'includesdir'=>array(
                 'includesdir'=>$array['includesdir'],
-            )
+            ),
+            'security'=>array(
+                'pepper'=>$array['pepper'] ?? self::generatePepper(),
+            ),
         );
+        if (!empty($array['legacyPepper'])) {
+            $inifile['security']['legacyPepper'] = $array['legacyPepper'];
+        }
         return $inifile;
     }
 
@@ -318,6 +393,7 @@ class helper
         define('DB_USER',$ini['database']['user']);
         define('DB_PASS',$ini['database']['password']);
         define('DB_PORT',$ini['database']['port']);
+        self::loadSecurityConfig($ini);
 
     }
 

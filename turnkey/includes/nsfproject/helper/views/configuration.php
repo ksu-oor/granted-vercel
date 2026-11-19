@@ -15,27 +15,36 @@
 
 foreach($ini as $key => $value)
 {
+    if ($key === 'security') {
+        continue; // secrets (password pepper) are never displayed
+    }
     ?>
-    <h2><?php echo $key?></h2>
+    <h2><?php echo htmlspecialchars((string)$key); ?></h2>
     <table>
     <?php
     foreach($value as $k => $v) {
         ?>
         <tr>
-            <td><?php echo $k; ?></td>
+            <td><?php echo htmlspecialchars((string)$k); ?></td>
             <?php if (is_array($v)) {
                 echo '</tr>';
                 foreach($v as $k2 => $v2) {
                     ?>
                     <tr>
                         <td><?php echo $k2+1; ?></td>
-                        <td><?php echo (!empty($v2)?$v2:'EMPTY'); ?></td>
+                        <td><?php echo (!empty($v2)?htmlspecialchars((string)$v2):'EMPTY'); ?></td>
                     </tr>
                     <?php
                 }
             } else {
             ?>
-            <td><?php echo (!empty($v)?$v:'EMPTY'); ?></td>
+            <td><?php
+                if ($key === 'database' && $k === 'password') {
+                    echo !empty($v) ? '******** (set)' : 'EMPTY'; // never display the DB password
+                } else {
+                    echo !empty($v) ? htmlspecialchars((string)$v) : 'EMPTY';
+                }
+            ?></td>
         </tr>
         <?php
         }

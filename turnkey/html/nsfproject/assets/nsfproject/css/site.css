@@ -88,6 +88,14 @@ select { display: block; }
     background: var(--color-white);
     color: var(--color-primary);
 }
+.site-header__logout {
+    display: inline;
+    margin: 0 0 0 0.75rem;
+}
+.site-header__logout .btn {
+    font: inherit;
+    cursor: pointer;
+}
 
 /* ── Site Header ────────────────────────────────────────────── */
 .site-header {

@@ -180,13 +180,13 @@ class HelperTest extends TestCase
     }
 
     /**
-     * Test pepper constant is defined as static property
+     * The pepper is a secret: it must not be hardcoded or publicly readable.
      */
-    public function testPepperConstantDefined(): void
+    public function testPepperIsNotHardcodedOrPublic(): void
     {
-        $this->assertTrue(property_exists(helper::class, 'pepper'));
-        $this->assertNotEmpty(helper::$pepper);
-        $this->assertIsString(helper::$pepper);
+        $property = new \ReflectionProperty(helper::class, 'pepper');
+        $this->assertTrue($property->isPrivate());
+        $this->assertNull($property->getDefaultValue());
     }
 
     /**

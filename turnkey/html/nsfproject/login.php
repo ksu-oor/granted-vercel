@@ -23,7 +23,8 @@ use Nsfproject\models\user;
 $logger = logger::getInstance();
 
 if (isset($_GET['return'])) {
-    $_SESSION['return'] = $_GET['return'];
+    // Only same-site paths: "?return=https://evil.example" must not redirect off-site.
+    $_SESSION['return'] = helper::safeLocalPath((string)$_GET['return']);
 }
 if (!empty($_POST) && $_POST['submit'] == 'Login' && isset($_POST['email'])) {
     $email = filter_var(trim($_POST['email']), FILTER_SANITIZE_EMAIL);
@@ -35,9 +36,10 @@ if (!empty($_POST) && $_POST['submit'] == 'Login' && isset($_POST['email'])) {
 
         $logger->writeErrors();
         if (isset($_SESSION['return'])) {
-            $return = $_SESSION['return'];
+            $return = helper::safeLocalPath((string)$_SESSION['return']);
             unset($_SESSION['return']);
             header("Location: $return");
+            exit;
         } else {
             header("Location: ". WEB_PATH . "/");
             exit;
@@ -69,6 +71,7 @@ $forgotPassword = isset($_GET['forgotPassword']) && $_GET['forgotPassword'] === 
      <?php if ($forgotPassword): ?>
         <h2>Reset Password</h2>
         <form method="post">
+            <?php echo \Nsfproject\helper\csrf::field(); ?>
             <label for="email">Email:</label>
             <input type="email" id="email" name="email" required><br>
 
@@ -78,6 +81,7 @@ $forgotPassword = isset($_GET['forgotPassword']) && $_GET['forgotPassword'] === 
     <?php else: ?>
         <h2>Login</h2>
         <form method="post">
+            <?php echo \Nsfproject\helper\csrf::field(); ?>
             <label for="email">Email:</label>
             <input type="email" id="email" name="email" required><br>
 

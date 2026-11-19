@@ -25,6 +25,7 @@ use Nsfproject\helper\logger;
     ?>
 
         <form method="post" action="<?php echo WEB_PATH.'/updatePassword.php';?>">
+            <?php echo \Nsfproject\helper\csrf::field(); ?>
             <label for="password">Password:</label>
             <input type="password" id="password" name="password" required><br>
 
