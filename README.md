@@ -111,12 +111,13 @@ This fork adds a container-based deployment path for the `turnkey` PHP app so it
 | `APP_EMAIL_SENDER`, `APP_COPYRIGHT` | Footer settings. |
 | `APP_RESOURCE_LINKS` | Comma-separated Markdown links, e.g. `[KSU OoR](https://oor.kennesaw.edu/)`. |
 | `APP_CSS_OVERRIDE` | Web path to a custom CSS override file. |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Creates the first admin account on boot if the database has no admin yet (password: at least 12 characters). Optional `ADMIN_FIRST` / `ADMIN_LAST` set the name. It never overwrites an existing admin. You can remove these once you've logged in. |
 | `REDIS_URL` | If set, PHP sessions are stored in Redis instead of the container's local (ephemeral) disk. Recommended once this sees real traffic, since Vercel Functions can scale across multiple instances. |
 
 ### Deploying
 
 1. Create the database (see `create_herd_tbl_maria.sql` or `turnkey/includes/nsfproject/conf/tables_postgres.sql`) and set the environment variables above in the Vercel project settings.
 2. `vercel deploy --prod` (or connect the GitHub repo in the Vercel dashboard for git-based deploys).
-3. Log in with the seeded admin account from `turnkey/README.md`, then immediately create a new admin user and remove/rotate the default one.
+3. Set `ADMIN_EMAIL` and `ADMIN_PASSWORD` for the first deploy, then log in with that account. There is no seeded default admin, and the interactive `setup*.php` wizard is removed from the container image.
 
 This path hasn't been exercised against a live Vercel + database deployment yet — validate it end-to-end before relying on it for anything production-facing.

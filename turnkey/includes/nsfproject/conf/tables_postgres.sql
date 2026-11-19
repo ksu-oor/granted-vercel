@@ -68,6 +68,5 @@ INSERT INTO pages (id, title, parentid, embed, content, active, secure, is_defau
 (19, 'test page', 14, '', '<h2>Test page no embed.</h2>
 <p>use this page for other things such as an about page, or a listing of participants.&nbsp;</p>', true, false, false);
 
--- Insert sample user with specific ID
-INSERT INTO users (id, email, first, last, level, passwordhash) VALUES
-(15, 'admin@admin.com', 'delete once', 'you have an account', 'admin', '$2y$10$eXE3WfNSXi5kpEikpJPdsuFa5tLVwK1L3w3oc3fjapvQ5yewUv1H.');
+-- No default user is seeded. The first admin account is created by the setup
+-- wizard or, on container deployments, from ADMIN_EMAIL/ADMIN_PASSWORD.

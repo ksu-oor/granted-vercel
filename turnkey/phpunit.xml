@@ -28,6 +28,7 @@
             <file>tests/PagesTest.php</file>
             <file>tests/NavigationTest.php</file>
             <file>tests/DbModelTest.php</file>
+            <file>tests/DefaultCredentialsTest.php</file>
         </testsuite>
     </testsuites>
     <coverage>

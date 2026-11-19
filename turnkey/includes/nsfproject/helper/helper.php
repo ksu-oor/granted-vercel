@@ -26,6 +26,61 @@ class helper
     var $error=array();
     public static $pepper = "8#7*0B9#16Ee1BiD9P122)a5@!7j(2MV";
     public static $forgotPasswordLink = WEB_PATH . "/forgotPassword.php?token=";
+
+    /**
+     * Hash of the default admin@admin.com password that older versions of
+     * tables.sql seeded and that was published in the README. Any account
+     * still carrying it is refused at login and doesn't count as an admin
+     * for bootstrapAdmin().
+     */
+    public const LEAKED_DEFAULT_ADMIN_HASH = '$2y$10$eXE3WfNSXi5kpEikpJPdsuFa5tLVwK1L3w3oc3fjapvQ5yewUv1H.';
+
+    public const MIN_ADMIN_PASSWORD_LENGTH = 12;
+
+    public static function hashPassword(string $password): string
+    {
+        return password_hash(hash_hmac("sha256", $password, self::$pepper), PASSWORD_DEFAULT);
+    }
+
+    public static function verifyPassword(string $password, ?string $hash): bool
+    {
+        if ($hash === null || $hash === '' || hash_equals(self::LEAKED_DEFAULT_ADMIN_HASH, $hash)) {
+            return false;
+        }
+        return password_verify(hash_hmac("sha256", $password, self::$pepper), $hash);
+    }
+
+    /**
+     * Create the first admin account if the database has no usable admin yet.
+     *
+     * Replaces the old hardcoded admin@admin.com seed. Returns true if an
+     * admin was created; false if one already existed or input was invalid
+     * (the reason is passed back through $error).
+     */
+    public static function bootstrapAdmin(PDO $pdo, string $email, string $password, string $first = 'Site', string $last = 'Administrator', ?string &$error = null): bool
+    {
+        $error = null;
+        $email = trim($email);
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $error = 'A valid administrator email address is required.';
+            return false;
+        }
+        if (strlen($password) < self::MIN_ADMIN_PASSWORD_LENGTH) {
+            $error = 'The administrator password must be at least ' . self::MIN_ADMIN_PASSWORD_LENGTH . ' characters.';
+            return false;
+        }
+
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM users WHERE level = 'admin' AND (passwordhash IS NULL OR passwordhash <> ?)");
+        $stmt->execute([self::LEAKED_DEFAULT_ADMIN_HASH]);
+        if ((int)$stmt->fetchColumn() > 0) {
+            $error = 'An administrator account already exists; no new admin was created.';
+            return false;
+        }
+
+        $stmt = $pdo->prepare("INSERT INTO users (email, passwordhash, first, last, level) VALUES (?, ?, ?, ?, 'admin')");
+        $stmt->execute([$email, self::hashPassword($password), trim($first) ?: 'Site', trim($last) ?: 'Administrator']);
+        return true;
+    }
     public static function prepareIniFile($array)
     {
 //        array(

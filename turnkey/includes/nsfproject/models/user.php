@@ -85,16 +85,18 @@ class user
     }
 
     private function pepperPassword($password) {
-        $pepperedPassword=hash_hmac("sha256",$password, helper::$pepper);
-
-        $this->passwordHash=password_hash($pepperedPassword,PASSWORD_DEFAULT);
+        $this->passwordHash=helper::hashPassword($password);
     }
 
     public function useradd() {
         $problem=false;
         try {
             $email=$_POST['email'];
-            $password=$_POST['password']??'temppassword';
+            // No password is collected when an admin adds a user; the user sets
+            // their own via the emailed link. Use an unguessable placeholder
+            // rather than a shared literal so the account can't be logged into
+            // in the meantime.
+            $password=$_POST['password']??bin2hex(random_bytes(32));
             $first=$_POST['first'];
             $last=$_POST['last'];
             $level=$_POST['level']??'user';
@@ -170,9 +172,14 @@ class user
         $stmt->execute([$email]);
         $user = $stmt->fetch();
         $dbh = null;
+        if ($user && hash_equals(helper::LEAKED_DEFAULT_ADMIN_HASH, (string)$user['passwordhash'])) {
+            $logger = logger::getInstance();
+            $logger->logErrorMessage("Refused login for {$email}: account still uses the published default password. Create a new admin and delete this account.");
+            $logger->writeErrors();
+            return false;
+        }
         if ($user) {
-            $pepperedPassword=hash_hmac("sha256",$password, helper::$pepper);
-            if (password_verify($pepperedPassword, $user['passwordhash'])) {
+            if (helper::verifyPassword($password, $user['passwordhash'])) {
                 $this->first=$user['first'];
                 $this->last=$user['last'];
                 $this->level=$user['level'];

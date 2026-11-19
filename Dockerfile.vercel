@@ -1,7 +1,8 @@
 FROM composer:2 AS dependencies
 WORKDIR /app/includes
 COPY turnkey/includes/ ./
-RUN composer install --no-dev --no-interaction --no-progress --optimize-autoloader
+# The composer image doesn't ship mbstring; the FrankenPHP runtime image does.
+RUN composer install --no-dev --no-interaction --no-progress --optimize-autoloader --ignore-platform-req=ext-mbstring
 
 FROM dunglas/frankenphp:1-php8.4-alpine
 
@@ -11,6 +12,10 @@ WORKDIR /app
 
 COPY --from=dependencies /app/includes ./includes
 COPY turnkey/html/nsfproject ./public/nsfproject
+# The interactive setup wizard is never needed here (config is generated from
+# env vars by docker/generate-config.php) and, if reachable, lets anyone
+# reconfigure the app. Don't ship it.
+RUN rm -f ./public/nsfproject/setup*.php
 COPY Caddyfile /etc/caddy/Caddyfile
 COPY docker/generate-config.php ./generate-config.php
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh

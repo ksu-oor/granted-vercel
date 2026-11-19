@@ -65,3 +65,38 @@ $settingsContents = "<?php \r\n"
 file_put_contents($settingsPath, $settingsContents);
 
 fwrite(STDOUT, "Wrote {$iniPath} and {$settingsPath}\n");
+
+// First-admin bootstrap. There is no seeded default admin; if ADMIN_EMAIL and
+// ADMIN_PASSWORD are set and the database has no usable admin yet, create
+// one. Failures are reported but never block the container from starting.
+$adminEmail = getenv('ADMIN_EMAIL') ?: '';
+$adminPassword = getenv('ADMIN_PASSWORD') ?: '';
+if ($adminEmail !== '' && $adminPassword !== '') {
+    try {
+        $host = $formInput['host'];
+        $port = $formInput['port'];
+        $db = $formInput['dbname'];
+        // Same driver detection as Nsfproject\helper\dbModel::connectDB().
+        if (strpos($host, 'postgres') !== false || $port == '5432') {
+            $dsn = "pgsql:host={$host};port={$port};dbname={$db}";
+        } else {
+            $dsn = "mysql:host={$host};dbname={$db};port={$port}";
+        }
+        $pdo = new PDO($dsn, $formInput['user'], $formInput['password'], [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_TIMEOUT => 5,
+        ]);
+        $adminError = null;
+        $created = \Nsfproject\helper\helper::bootstrapAdmin(
+            $pdo,
+            $adminEmail,
+            $adminPassword,
+            getenv('ADMIN_FIRST') ?: 'Site',
+            getenv('ADMIN_LAST') ?: 'Administrator',
+            $adminError
+        );
+        fwrite(STDOUT, $created ? "Created admin account {$adminEmail}\n" : "Admin bootstrap skipped: {$adminError}\n");
+    } catch (Throwable $e) {
+        fwrite(STDERR, "Admin bootstrap failed (continuing): {$e->getMessage()}\n");
+    }
+}
